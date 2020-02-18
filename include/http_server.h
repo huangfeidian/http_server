@@ -20,13 +20,15 @@ namespace spiritsaway::http
 		std::uint16_t port;
 		std::uint8_t worker_size;
 		std::uint32_t connection_idx = 0;
+		const std::string server_name;
 	public:
 
-		http_server(asio::io_context& io_context, std::uint16_t in_port, std::uint8_t in_worker_size) :
+		http_server(asio::io_context& io_context, const std::string in_server_name, std::uint16_t in_port, std::uint8_t in_worker_size) :
 			io_context(io_context),
 			acceptor(io_context),
 			port(in_port),
-			worker_size(in_worker_size ? in_worker_size: 1)
+			worker_size(in_worker_size ? in_worker_size: 1),
+			server_name(in_server_name)
 			
 		{
 		}
@@ -44,17 +46,16 @@ namespace spiritsaway::http
 			time(&rawtime);
 			timeinfo = localtime(&rawtime);
 
-			strftime(buffer, sizeof(buffer), "%d-%m-%Y-%H:%M:%S", timeinfo);
-			//std::string log_file_name = "http_server-" + std::string(buffer) + ".log";
-			std::string log_file_name = "http_server.log";
+			strftime(buffer, sizeof(buffer), "%d-%m-%Y-%H-%M-%S", timeinfo);
+			std::string log_file_name = server_name + "-" + std::string(buffer) + ".log";
 			auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
 			console_sink->set_level(spdlog::level::debug);
 			auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(log_file_name, true);
 			file_sink->set_level(spdlog::level::debug);
-			this->logger = std::make_shared<spdlog::logger>("http_server", spdlog::sinks_init_list{ console_sink, file_sink });
+			this->logger = std::make_shared<spdlog::logger>(server_name, spdlog::sinks_init_list{ console_sink, file_sink });
 			this->logger->set_level(spdlog::level::debug);
 			this->logger->flush_on(spdlog::level::warn);
-			this->logger->info("http_server  runs with {} threads", worker_size);
+			this->logger->info("{}  runs with {} threads", server_name, worker_size);
 			this->start_accept();
 			std::vector<std::thread> td_vec;
 			for (auto i = 0; i < worker_size; ++i)
@@ -77,7 +78,7 @@ namespace spiritsaway::http
 				td.join();
 			}
 		}
-	private:
+	protected:
 		void start_accept()
 		{
 			auto socket = std::make_shared<asio::ip::tcp::socket>(io_context);

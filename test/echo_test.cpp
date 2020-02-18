@@ -34,7 +34,7 @@ public:
 int main()
 {
 	asio::io_context cur_context;
-	http_server<echo_connection> cur_server(cur_context, 8090, 1);
+	http_server<echo_connection> cur_server(cur_context, "echo_server", 8090, 1);
 	cur_server.run();
 	cur_context.run();
 }
