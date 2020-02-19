@@ -253,7 +253,6 @@ void http_connection::on_client_data_body_read(const http_request_header& _heade
 {
 	auto header_data = _header.encode_to_data();
 	logger->trace("{} read client request body read  header {} with data {}", logger_prefix, header_data, _content);
-	async_read_data_from_client();
 	return;
 }
 
