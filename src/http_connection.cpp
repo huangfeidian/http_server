@@ -214,7 +214,7 @@ void http_connection::on_client_data_arrived(std::size_t bytes_transferred)
 
 
 			header_readed = true;
-			on_client_data_header_read();
+			on_client_data_header_read(_request_parser._header);
 		}
 		else if (cur_parse_result.first == http_parser_result::read_some_content)
 		{
@@ -222,7 +222,7 @@ void http_connection::on_client_data_arrived(std::size_t bytes_transferred)
 		}
 		else if (cur_parse_result.first == http_parser_result::read_content_end)
 		{
-			on_client_data_body_read();
+			on_client_data_body_read(_request_parser._header, cur_parse_result.second);
 		}
 		else
 		{
@@ -243,16 +243,16 @@ void http_connection::on_client_data_send(std::size_t bytes_transferred)
 {
 	async_read_data_from_client();
 }
-void http_connection::on_client_data_header_read()
+void http_connection::on_client_data_header_read(const http_request_header& _header)
 {
-	auto header_data = _request_parser._header.encode_to_data();
+	auto header_data = _header.encode_to_data();
 	logger->trace("{} read client request header {}", logger_prefix, header_data);
 	return;
 }
-void http_connection::on_client_data_body_read()
+void http_connection::on_client_data_body_read(const http_request_header& _header, std::string_view _content)
 {
-	auto header_data = _request_parser._header.encode_to_data();
-	logger->trace("{} read client request body read  header {}", logger_prefix, header_data);
+	auto header_data = _header.encode_to_data();
+	logger->trace("{} read client request body read  header {} with data {}", logger_prefix, header_data, _content);
 	async_read_data_from_client();
 	return;
 }

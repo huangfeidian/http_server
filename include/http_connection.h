@@ -58,8 +58,8 @@ namespace spiritsaway::http
 		virtual void async_read_data_from_client(bool set_timer = true, std::size_t at_least_size = 1, std::size_t at_most_size = BUFFER_LENGTH);
 		virtual void async_send_data_to_client(const unsigned char* write_buffer, std::size_t offset, std::size_t size);
 		virtual void async_send_data_to_client_impl(const unsigned char* write_buffer, std::size_t offset, std::size_t remain_size, std::size_t total_size);
-		virtual void on_client_data_header_read();
-		virtual void on_client_data_body_read();
+		virtual void on_client_data_header_read(const http_request_header& _header);
+		virtual void on_client_data_body_read(const http_request_header& _header, std::string_view content);
 		void set_timer(std::string _cur_timer);
 		bool cancel_timer(std::string _cur_timer);
 		void cancel_all_timers();

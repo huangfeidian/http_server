@@ -403,7 +403,6 @@ namespace spiritsaway::http
 
 	std::pair<http_parser_result, std::uint32_t> http_header_parser::parse_headers(const unsigned char* begin, const unsigned char* end, http_headers_container& headers)
 	{
-		static uint32_t header_counter = 0;
 		//lambdas are inlined  don't worry be happy
 		auto is_token_char = [](char ch) -> bool
 		{
@@ -554,7 +553,6 @@ namespace spiritsaway::http
 		{
 			return std::make_pair(http_parser_result::buffer_overflow, 0);
 		}
-		headers.insert(std::make_pair("header_counter", std::to_string(header_counter++)));
 		return std::make_pair(http_parser_result::read_one_header, iter - begin);
 	}
 

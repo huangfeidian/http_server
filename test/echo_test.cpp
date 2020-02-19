@@ -17,7 +17,7 @@ public:
 	{
 
 	}
-	void on_client_data_body_read()
+	void on_client_data_body_read(const http_request_header& _header, std::string_view _content)
 	{
 		http_response_header _cur_response;
 		_cur_response.set_version("1.0");
@@ -26,7 +26,7 @@ public:
 
 		_cur_response.add_header_value("Content-Type", "text/html");
 		_cur_response.add_header_value("Server", "Http Server");
-		auto request_str = _request_parser._header.encode_to_data();
+		auto request_str = _header.encode_to_data();
 		response_str = _cur_response.encode_to_data(request_str);
 		
 	}
