@@ -8,11 +8,13 @@ INCLUDE_DIRECTORIES(${spdlog_include_dirs})
 include_directories(${ASIO_DIR})
 
 add_definitions(-DASIO_STANDALONE)
-add_definitions(-DASIO_MSVC)
+
 
 
 set(CMAKE_CXX_STANDARD 17)
+
 if(MSVC)
+add_definitions(-DASIO_MSVC)
 add_definitions(-DBOOST_ASIO_HAS_MOVE)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++latest")
 endif(MSVC)
