@@ -1,4 +1,4 @@
-#include <http_connection.h>
+﻿#include <http_connection.h>
 #include <http_server.h>
 
 using namespace spiritsaway::http;
@@ -7,7 +7,7 @@ using namespace std;
 class echo_connection:public http_connection
 {
 public:
-	static std::shared_ptr<echo_connection> create(asio::ip::tcp::socket&& _in_client_socket, std::shared_ptr<spdlog::logger> logger, std::uint32_t in_connection_idx, std::uint32_t _in_timeout, std::string log_pre)
+	static std::shared_ptr<echo_connection> create(asio::ip::tcp::socket&& _in_client_socket, std::shared_ptr<spdlog::logger> logger, std::uint32_t in_connection_idx, std::uint32_t _in_timeout, std::string log_pre, void* common_data)
 		
 	{
 		return std::make_shared<echo_connection>( std::move(_in_client_socket), logger, in_connection_idx, _in_timeout, log_pre);

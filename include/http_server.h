@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <atomic>
 #include <asio.hpp>
@@ -11,7 +11,7 @@ using error_code = asio::error_code;
 namespace spiritsaway::http
 {
 
-	template<typename T>
+	template<typename T, typename D = void>
 	class http_server
 	{
 		asio::io_context& io_context;
@@ -21,14 +21,18 @@ namespace spiritsaway::http
 		std::uint8_t worker_size;
 		std::uint32_t connection_idx = 0;
 		const std::string server_name;
+	protected:
+		D* _common_data;
+
 	public:
 
-		http_server(asio::io_context& io_context, const std::string in_server_name, std::uint16_t in_port, std::uint8_t in_worker_size) :
+		http_server(asio::io_context& io_context, const std::string in_server_name, std::uint16_t in_port, std::uint8_t in_worker_size, D* _in_common_data = nullptr) :
 			io_context(io_context),
 			acceptor(io_context),
 			port(in_port),
 			worker_size(in_worker_size ? in_worker_size: 1),
-			server_name(in_server_name)
+			server_name(in_server_name),
+			_common_data(_in_common_data)
 			
 		{
 		}
@@ -78,7 +82,7 @@ namespace spiritsaway::http
 				td.join();
 			}
 		}
-	protected:
+	public:
 		void start_accept()
 		{
 			auto socket = std::make_shared<asio::ip::tcp::socket>(io_context);
@@ -88,7 +92,7 @@ namespace spiritsaway::http
 				{
 					this->start_accept();
 
-					auto connection = T::create(std::move(*socket), this->logger, connection_idx++, 10, "connection");
+					auto connection = T::create(std::move(*socket), this->logger, connection_idx++, 10, "connection", reinterpret_cast<void*>(_common_data));
 
 					connection->start();
 				}

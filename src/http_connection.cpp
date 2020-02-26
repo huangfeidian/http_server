@@ -1,4 +1,4 @@
-#include <http_connection.h>
+﻿#include <http_connection.h>
 
 using namespace spiritsaway::http;
 http_connection::http_connection(asio::ip::tcp::socket&& in_client_socket, std::shared_ptr<spdlog::logger> in_logger, std::size_t in_connection_count, std::uint32_t in_timeout, std::string log_pre)
@@ -13,7 +13,7 @@ logger_prefix(log_pre + " " +std::to_string(in_connection_count) + ": ")
 {
 	
 }
-std::shared_ptr<http_connection> http_connection::create(asio::ip::tcp::socket&& _in_client_socket, std::shared_ptr<spdlog::logger> logger, std::uint32_t in_connection_idx, std::uint32_t _in_timeout, std::string log_pre)
+std::shared_ptr<http_connection> http_connection::create(asio::ip::tcp::socket&& _in_client_socket, std::shared_ptr<spdlog::logger> logger, std::uint32_t in_connection_idx, std::uint32_t _in_timeout, std::string log_pre, void* common_data)
 {
 	return std::make_shared<http_connection>(std::move(_in_client_socket), logger, in_connection_idx, _in_timeout, log_pre);
 }
@@ -260,7 +260,7 @@ void http_connection::on_client_data_body_read(const http_request_header& _heade
 
 void http_connection::report_error(reply_status status_code, const std::string& status_description, const std::string& error_message)
 {
-	logger->warn("{} report error status_code {} status_description {} error_message {}", logger_prefix, status_code, status_description, error_message);
+	logger->warn("{} report error status_code {} status_description {} error_message {}", logger_prefix, static_cast<int>(status_code), status_description, error_message);
 	http_response_header _cur_response;
 	_cur_response.set_version("1.1");
 	_cur_response.status_code(status_code);

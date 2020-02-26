@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <array>
 #include <chrono>
@@ -51,7 +51,7 @@ namespace spiritsaway::http
 		std::string response_str;
 	public:
 		virtual ~http_connection();
-		static std::shared_ptr<http_connection> create( asio::ip::tcp::socket&& _in_client_socket,  std::shared_ptr<spdlog::logger> logger, std::uint32_t in_connection_idx, std::uint32_t _in_timeout, std::string log_pre);
+		static std::shared_ptr<http_connection> create( asio::ip::tcp::socket&& _in_client_socket,  std::shared_ptr<spdlog::logger> logger, std::uint32_t in_connection_idx, std::uint32_t _in_timeout, std::string log_pre, void* common_data);
 		http_connection(asio::ip::tcp::socket&& in_client_socket, std::shared_ptr<spdlog::logger> logger, std::uint32_t in_connection_idx, std::uint32_t in_timeout,  std::string log_pre = "connection");
 		virtual void start();
 	protected:
