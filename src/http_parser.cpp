@@ -1,4 +1,4 @@
-
+﻿
 #include <iterator>
 #include <regex>
 #include <memory>
@@ -611,10 +611,6 @@ namespace spiritsaway::http
 			if (match_results[4].matched)
 			{
 				header._path_and_query = match_results[4];
-			}
-			else
-			{
-				header._path_and_query = "/";
 			}
 			return true;
 		}
