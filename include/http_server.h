@@ -10,15 +10,20 @@ using error_code = asio::error_code;
 
 namespace spiritsaway::http
 {
-
-	template<typename T, typename D = void>
+	enum class listen_mode
+	{
+		local_v4 = 0,
+		public_v4 ,
+		local_v6,
+		public_v6,
+	};
+	template<typename T, typename D = void, listen_mode _mode = listen_mode::local_v4>
 	class http_server
 	{
 		asio::io_context& io_context;
 		asio::ip::tcp::acceptor acceptor;
 		std::shared_ptr<spdlog::logger> logger;
 		std::uint16_t port;
-		std::uint8_t worker_size;
 		std::uint32_t connection_idx = 0;
 		const std::string server_name;
 	protected:
@@ -26,11 +31,10 @@ namespace spiritsaway::http
 
 	public:
 
-		http_server(asio::io_context& io_context, const std::string in_server_name, std::uint16_t in_port, std::uint8_t in_worker_size, D* _in_common_data = nullptr) :
+		http_server(asio::io_context& io_context, const std::string in_server_name, std::uint16_t in_port, D* _in_common_data = nullptr) :
 			io_context(io_context),
 			acceptor(io_context),
 			port(in_port),
-			worker_size(in_worker_size ? in_worker_size: 1),
 			server_name(in_server_name),
 			_common_data(_in_common_data)
 			
@@ -39,7 +43,25 @@ namespace spiritsaway::http
 
 		void run()
 		{
-			asio::ip::tcp::endpoint endpoint(asio::ip::address::from_string("127.0.0.1"), port);
+			std::string listen_ip = "127.0.0.1";
+			switch (_mode)
+			{
+			case spiritsaway::http::listen_mode::local_v4:
+				listen_ip = "127.0.0.1";
+				break;
+			case spiritsaway::http::listen_mode::public_v4:
+				listen_ip = "0.0.0.0";
+				break;
+			case spiritsaway::http::listen_mode::local_v6:
+				listen_ip = "::1";
+				break;
+			case spiritsaway::http::listen_mode::public_v6:
+				listen_ip = "::";
+				break;
+			default:
+				break;
+			}
+			asio::ip::tcp::endpoint endpoint(asio::ip::address::from_string(listen_ip), port);
 			this->acceptor.open(endpoint.protocol());
 			this->acceptor.bind(endpoint);
 			this->acceptor.listen(asio::socket_base::max_connections);
@@ -59,7 +81,6 @@ namespace spiritsaway::http
 			this->logger = std::make_shared<spdlog::logger>(server_name, spdlog::sinks_init_list{ console_sink, file_sink });
 			this->logger->set_level(spdlog::level::debug);
 			this->logger->flush_on(spdlog::level::warn);
-			this->logger->info("{}  runs with {} threads", server_name, worker_size);
 			this->start_accept();
 		}
 	public:
