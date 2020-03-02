@@ -61,26 +61,6 @@ namespace spiritsaway::http
 			this->logger->flush_on(spdlog::level::warn);
 			this->logger->info("{}  runs with {} threads", server_name, worker_size);
 			this->start_accept();
-			std::vector<std::thread> td_vec;
-			for (auto i = 0; i < worker_size; ++i)
-			{
-				td_vec.emplace_back([this]()
-				{
-					try
-					{
-						this->io_context.run();
-					}
-					catch (const std::exception& e)
-					{
-						std::cerr << e.what() << std::endl;
-					}
-				});
-			}
-
-			for (auto& td : td_vec)
-			{
-				td.join();
-			}
 		}
 	public:
 		void start_accept()
