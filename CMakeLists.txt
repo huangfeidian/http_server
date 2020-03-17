@@ -24,13 +24,20 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 file(GLOB BASE_SRC  "${PROJECT_SOURCE_DIR}/src/*.cpp")
 add_library(${CMAKE_PROJECT_NAME} ${BASE_SRC})
 
+find_package(Threads)
+
+target_link_libraries(${CMAKE_PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT})
+
 add_executable(echo_server  ${PROJECT_SOURCE_DIR}/test/echo_test.cpp)
 target_link_libraries(echo_server ${CMAKE_PROJECT_NAME})
+
+
 
 foreach(p LIB INCLUDE)
 	set(var CMAKE_INSTALL_${p}DIR)
 	if(NOT IS_ABSOLUTE "${${var}}")
-		set(${var} "${CMAKE_INSTALL_PREFIX}/${p}")
+		string(TOLOWER ${p} lower_p)
+		set(${var} "${CMAKE_INSTALL_PREFIX}/${lower_p}")
 	endif()
 endforeach()
 

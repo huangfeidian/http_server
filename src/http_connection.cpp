@@ -1,7 +1,7 @@
 ﻿#include <http_connection.h>
 
 using namespace spiritsaway::http;
-http_connection::http_connection(asio::ip::tcp::socket&& in_client_socket, std::shared_ptr<spdlog::logger> in_logger, std::size_t in_connection_count, std::uint32_t in_timeout, std::string log_pre)
+http_connection::http_connection(asio::ip::tcp::socket&& in_client_socket, std::shared_ptr<spdlog::logger> in_logger, std::uint32_t in_connection_count, std::uint32_t in_timeout, std::string log_pre)
 :
 client_socket(std::move(in_client_socket)),
 
