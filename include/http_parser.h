@@ -13,8 +13,8 @@
 
 namespace spiritsaway::http
 {
-	const std::size_t MAX_HTTP_BUFFER_LENGTH = 4096;
-	const std::size_t BUFFER_LENGTH = 2048;
+	const std::size_t MAX_HTTP_BUFFER_LENGTH = 4096 * 16;
+	const std::size_t BUFFER_LENGTH = 2048 * 16 ;
 	
 	enum http_parser_status: uint16_t
 	{
