@@ -23,10 +23,11 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 
 file(GLOB BASE_SRC  "${PROJECT_SOURCE_DIR}/src/*.cpp")
 add_library(${CMAKE_PROJECT_NAME} ${BASE_SRC})
+find_package(spdlog REQUIRED)
 
 find_package(Threads)
 
-target_link_libraries(${CMAKE_PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(${CMAKE_PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT} spdlog::spdlog)
 
 add_executable(echo_server  ${PROJECT_SOURCE_DIR}/test/echo_test.cpp)
 target_link_libraries(echo_server ${CMAKE_PROJECT_NAME})
