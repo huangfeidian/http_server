@@ -19,14 +19,20 @@ endif(MSVC)
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
+<<<<<<< HEAD
 file(GLOB BASE_SRC  "${PROJECT_SOURCE_DIR}/src/*.cpp" "${PROJECT_SOURCE_DIR}/src/*.c")
 file(GLOB BASE_INC  "${PROJECT_SOURCE_DIR}/src/*.hpp" "${PROJECT_SOURCE_DIR}/src/*.h")
 
 add_library(${CMAKE_PROJECT_NAME} ${BASE_SRC} ${BASE_INC})
+=======
+file(GLOB BASE_SRC  "${PROJECT_SOURCE_DIR}/src/*.cpp")
+add_library(${CMAKE_PROJECT_NAME} ${BASE_SRC})
+find_package(spdlog REQUIRED)
+>>>>>>> 5baf8f1dba5c8d4aa0f7fabcc8cfb6358a95bf75
 
 find_package(Threads)
 
-target_link_libraries(${CMAKE_PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(${CMAKE_PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT} spdlog::spdlog)
 
 add_executable(echo_server  ${PROJECT_SOURCE_DIR}/test/echo_test.cpp)
 target_link_libraries(echo_server ${CMAKE_PROJECT_NAME})
