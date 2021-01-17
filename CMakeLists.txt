@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.1)
 project(http_server)
 
-find_package(spdlog CONFIG REQUIRED)
-INCLUDE_DIRECTORIES(${spdlog_include_dirs})
 
 
 include_directories(${ASIO_DIR})
@@ -21,8 +19,10 @@ endif(MSVC)
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-file(GLOB BASE_SRC  "${PROJECT_SOURCE_DIR}/src/*.cpp")
-add_library(${CMAKE_PROJECT_NAME} ${BASE_SRC})
+file(GLOB BASE_SRC  "${PROJECT_SOURCE_DIR}/src/*.cpp" "${PROJECT_SOURCE_DIR}/src/*.c")
+file(GLOB BASE_INC  "${PROJECT_SOURCE_DIR}/src/*.hpp" "${PROJECT_SOURCE_DIR}/src/*.h")
+
+add_library(${CMAKE_PROJECT_NAME} ${BASE_SRC} ${BASE_INC})
 
 find_package(Threads)
 
@@ -30,6 +30,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT})
 
 add_executable(echo_server  ${PROJECT_SOURCE_DIR}/test/echo_test.cpp)
 target_link_libraries(echo_server ${CMAKE_PROJECT_NAME})
+
 
 
 
@@ -42,6 +43,7 @@ foreach(p LIB INCLUDE)
 endforeach()
 
 export(TARGETS ${CMAKE_PROJECT_NAME}
+    NAMESPACE spiritsaway::
      FILE ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}Targets.cmake)
 
 file(WRITE
@@ -52,7 +54,8 @@ install(FILES
         ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}Config.cmake
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${CMAKE_PROJECT_NAME})
 
-install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}Targets
+install(TARGETS ${PROJECT_NAME} 
+  EXPORT ${PROJECT_NAME}Targets
    ARCHIVE  DESTINATION lib
    LIBRARY DESTINATION lib
   )
@@ -60,5 +63,6 @@ install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}Targets
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION include/${PROJECT_NAME})
 
 install(EXPORT ${CMAKE_PROJECT_NAME}Targets
+    NAMESPACE spiritsaway::
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${CMAKE_PROJECT_NAME})
 

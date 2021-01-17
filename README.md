@@ -4,4 +4,3 @@
 ## dependence
 
 1. asio standalone
-2. spdlog

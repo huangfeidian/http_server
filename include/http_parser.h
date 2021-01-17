@@ -1,180 +1,364 @@
-#pragma once
+/* Copyright Joyent, Inc. and other Node contributors. All rights reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+#ifndef http_parser_h
+#define http_parser_h
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#include <algorithm>
-#include <cctype>
-#include <map>
-#include <string>
-#include <string_view>
-#include <optional>
+    /* Also update SONAME in the Makefile whenever you change these. */
+#define HTTP_PARSER_VERSION_MAJOR 2
+#define HTTP_PARSER_VERSION_MINOR 7
+#define HTTP_PARSER_VERSION_PATCH 0
 
-#include "http_chunk_parser.h"
-#include "http_const.h"
+#include <sys/types.h>
+#if defined(_WIN32) && !defined(__MINGW32__) && \
+  (!defined(_MSC_VER) || _MSC_VER<1600) && !defined(__WINE__)
+#include <BaseTsd.h>
+#include <stddef.h>
+    typedef __int8 int8_t;
+    typedef unsigned __int8 uint8_t;
+    typedef __int16 int16_t;
+    typedef unsigned __int16 uint16_t;
+    typedef __int32 int32_t;
+    typedef unsigned __int32 uint32_t;
+    typedef __int64 int64_t;
+    typedef unsigned __int64 uint64_t;
+#else
+#include <stdint.h>
+#endif
+
+/* Compile with -DHTTP_PARSER_STRICT=0 to make less checks, but run
+ * faster
+ */
+#ifndef HTTP_PARSER_STRICT
+# define HTTP_PARSER_STRICT 1
+#endif
+
+ /* Maximium header size allowed. If the macro is not defined
+  * before including this header then the default is used. To
+  * change the maximum header size, define the macro in the build
+  * environment (e.g. -DHTTP_MAX_HEADER_SIZE=<value>). To remove
+  * the effective limit on the size of the header, define the macro
+  * to a very large number (e.g. -DHTTP_MAX_HEADER_SIZE=0x7fffffff)
+  */
+#ifndef HTTP_MAX_HEADER_SIZE
+# define HTTP_MAX_HEADER_SIZE (80*1024)
+#endif
+
+    typedef struct http_parser http_parser;
+    typedef struct http_parser_settings http_parser_settings;
 
 
-namespace spiritsaway::http
-{
-	const std::size_t MAX_HTTP_BUFFER_LENGTH = 4096;
-	const std::size_t BUFFER_LENGTH = 2048;
-	
-	enum http_parser_status: uint16_t
-	{
-		read_header,
-		read_content,
-		read_chunked,
-		read_header_only_finish,
+    /* Callbacks should return non-zero to indicate an error. The parser will
+     * then halt execution.
+     *
+     * The one exception is on_headers_complete. In a HTTP_RESPONSE parser
+     * returning '1' from on_headers_complete will tell the parser that it
+     * should not expect a body. This is used when receiving a response to a
+     * HEAD request which may contain 'Content-Length' or 'Transfer-Encoding:
+     * chunked' headers that indicate the presence of a body.
+     *
+     * Returning `2` from on_headers_complete will tell parser that it should not
+     * expect neither a body nor any futher responses on this connection. This is
+     * useful for handling responses to a CONNECT request which may not contain
+     * `Upgrade` or `Connection: upgrade` headers.
+     *
+     * http_data_cb does not return data chunks. It will be called arbitrarily
+     * many times for each string. E.G. you might get 10 callbacks for "on_url"
+     * each providing just a few characters more data.
+     */
+    typedef int (*http_data_cb) (http_parser*, const char* at, size_t length);
+    typedef int (*http_cb) (http_parser*);
 
-	};
-	enum http_parser_result
-	{
-		reading_header,
-		read_one_header,
-		reading_content,
-		reading_chunk,
-		read_some_content,
-		read_content_end,
-		waiting_input,
-		parse_error,
-		pipeline_not_supported,
-		buffer_overflow,
-		bad_request,
-		invalid_method,
-		invalid_version,
-		invalid_status,
-		invalid_uri,
-		invalid_transfer_encoding,
-		chunk_check_error,
-		invalid_parser_status,
 
-	};
-	std::tuple<reply_status, std::string, std::string> from_praser_result_to_description(http_parser_result cur_result);
-	struct default_filed_name_compare
-	{
-		bool operator() (const std::string& str1, const std::string& str2) const
-		{
-			return std::lexicographical_compare(str1.begin(), str1.end(), str2.begin(), str2.end(), [](const char ch1, const char ch2) -> bool
-			{
-				return std::tolower(static_cast<char>(ch1)) < std::tolower(static_cast<char>(ch2));
-			});
-		}
-	};
+    /* Request Methods */
+#define HTTP_METHOD_MAP(XX)         \
+  XX(0,  DELETE,      DELETE)       \
+  XX(1,  GET,         GET)          \
+  XX(2,  HEAD,        HEAD)         \
+  XX(3,  POST,        POST)         \
+  XX(4,  PUT,         PUT)          \
+  /* pathological */                \
+  XX(5,  CONNECT,     CONNECT)      \
+  XX(6,  OPTIONS,     OPTIONS)      \
+  XX(7,  TRACE,       TRACE)        \
+  /* WebDAV */                      \
+  XX(8,  COPY,        COPY)         \
+  XX(9,  LOCK,        LOCK)         \
+  XX(10, MKCOL,       MKCOL)        \
+  XX(11, MOVE,        MOVE)         \
+  XX(12, PROPFIND,    PROPFIND)     \
+  XX(13, PROPPATCH,   PROPPATCH)    \
+  XX(14, SEARCH,      SEARCH)       \
+  XX(15, UNLOCK,      UNLOCK)       \
+  XX(16, BIND,        BIND)         \
+  XX(17, REBIND,      REBIND)       \
+  XX(18, UNBIND,      UNBIND)       \
+  XX(19, ACL,         ACL)          \
+  /* subversion */                  \
+  XX(20, REPORT,      REPORT)       \
+  XX(21, MKACTIVITY,  MKACTIVITY)   \
+  XX(22, CHECKOUT,    CHECKOUT)     \
+  XX(23, MERGE,       MERGE)        \
+  /* upnp */                        \
+  XX(24, MSEARCH,     M-SEARCH)     \
+  XX(25, NOTIFY,      NOTIFY)       \
+  XX(26, SUBSCRIBE,   SUBSCRIBE)    \
+  XX(27, UNSUBSCRIBE, UNSUBSCRIBE)  \
+  /* RFC-5789 */                    \
+  XX(28, PATCH,       PATCH)        \
+  XX(29, PURGE,       PURGE)        \
+  /* CalDAV */                      \
+  XX(30, MKCALENDAR,  MKCALENDAR)   \
+  /* RFC-2068, section 19.6.1.2 */  \
+  XX(31, LINK,        LINK)         \
+  XX(32, UNLINK,      UNLINK)       \
 
-	// https://stackoverflow.com/questions/4371328/are-duplicate-http-response-headersacceptable
-	//Cache-Control: no-cache
-	//Cache-Control: no - store
-	// 因为http头里面会有重复的key 所以这里只能用multimap
-	typedef std::multimap<const std::string, std::string, default_filed_name_compare> http_headers_container;
+    enum http_method
+    {
+#define XX(num, name, string) HTTP_##name = num,
+        HTTP_METHOD_MAP(XX)
+#undef XX
+    };
 
-	class http_request_header
-	{
-		friend class http_header_parser;
-		friend class http_parser;
-		friend class http_request_parser;
-		std::string _method;
-		std::string _scheme;
-		std::string _host;
-		unsigned short _port;
-		std::string _path_and_query;
-		http_version _version;
-		http_headers_container _headers_map;
-		
-		void reset();
-	public:
-		http_request_header();
-		const std::string& method() const;
-		const std::string& scheme() const;
-		const std::string& host() const;
-		unsigned short port() const;
-		const std::string& path_and_query() const;
-		http_version get_version() const;
-		std::optional<std::string> get_header_value(const std::string& name) const;
-		std::size_t erase_header(const std::string& name);
-		const http_headers_container& get_headers_map() const;
-		bool valid_method() const;
-		bool valid_version() const;
-		std::string encode_to_data() const;
-		bool is_keep_alive() const;
 
-	};
+    enum http_parser_type { HTTP_REQUEST, HTTP_RESPONSE, HTTP_BOTH };
 
-	class http_response_header
-	{
-		friend class http_response_parser;
-		friend class http_parser;
-		friend class http_header_parser;
-		http_version _version;
-		reply_status _status_code;
-		std::string _status_description;
-		http_headers_container _headers_map;
-		void reset();
-		
-	public:
-		http_response_header();
-		bool set_version(const std::string& _version);
-		void status_code(reply_status _status_code);
-		void status_description(const std::string& _status_desc);
-		void add_header_value(const std::string& key, const std::string& value);
-		const std::string& status_description() const;
-		std::optional<std::string> get_header_value(const std::string& name) const;
-		std::size_t erase_header(const std::string& name);
-		const http_headers_container& get_headers_map() const;
-		std::string encode_to_data() const;
-		std::string encode_to_data(const std::string& content) ;
-		std::optional<bool> is_keep_alive() const;
-		
-	};
 
-	class http_header_parser
-	{
-		static std::pair<http_parser_result, std::uint32_t> parse_headers(const unsigned char* begin, const unsigned char* end, http_headers_container& headers);
-	public:
-		static http_parser_result parse_request_header(const unsigned char* begin, const unsigned char* end, http_request_header& header);
-		static http_parser_result parse_response_header(const unsigned char* begin, const unsigned char* end, http_response_header& header);
-		static bool parse_uri(const std::string& uri, http_request_header& header);
-	};
-	void string_to_lower_case(std::string& str);
-	std::string remove_trail_blank(const std::string& input);
+    /* Flag values for http_parser.flags field */
+    enum flags
+    {
+        F_CHUNKED = 1 << 0
+        , F_CONNECTION_KEEP_ALIVE = 1 << 1
+        , F_CONNECTION_CLOSE = 1 << 2
+        , F_CONNECTION_UPGRADE = 1 << 3
+        , F_TRAILING = 1 << 4
+        , F_UPGRADE = 1 << 5
+        , F_SKIPBODY = 1 << 6
+        , F_CONTENTLENGTH = 1 << 7
+    };
 
-	class http_request_parser
-	{
-	private:
-		char buffer[MAX_HTTP_BUFFER_LENGTH];
-		std::uint32_t buffer_size;
-		std::uint32_t parser_idx;
-		std::uint64_t total_content_length;
-		std::uint64_t read_content_length;
-		http_chunk_parser _cur_chunk_checker;
-		bool _pipeline_allowed;
-		http_parser_status _status;
-	public:
-		http_request_header _header;
-		
-		std::pair<http_parser_result, std::string_view> parse();
-		bool append_input(const unsigned char* in_bytes, std::size_t length);
-		void reset_header();
-		http_request_parser(bool pipeline_allowed = false);
-		http_parser_status status() const;
-		void reset();
-	};
 
-	class http_response_parser
-	{
-	private:
-		char buffer[MAX_HTTP_BUFFER_LENGTH];
-		std::uint32_t buffer_size;
-		std::uint32_t parser_idx;
-		std::uint64_t total_content_length;
-		std::uint64_t read_content_length;
-		http_chunk_parser _cur_chunk_checker;
-		bool _pipeline_allowed;
-		http_parser_status _status;
-	public:
-		http_response_header _header;
-		
-		std::pair<http_parser_result, std::string_view> parse();
-		bool append_input(const unsigned char* in_bytes, std::size_t length);
-		void reset_header();
-		http_response_parser(bool pipeline_allowed = false);
-		http_parser_status status() const;
-		void reset();
-	};
-}; // namespace http_proxy
+    /* Map for errno-related constants
+     *
+     * The provided argument should be a macro that takes 2 arguments.
+     */
+#define HTTP_ERRNO_MAP(XX)                                           \
+  /* No error */                                                     \
+  XX(OK, "success")                                                  \
+                                                                     \
+  /* Callback-related errors */                                      \
+  XX(CB_message_begin, "the on_message_begin callback failed")       \
+  XX(CB_url, "the on_url callback failed")                           \
+  XX(CB_header_field, "the on_header_field callback failed")         \
+  XX(CB_header_value, "the on_header_value callback failed")         \
+  XX(CB_headers_complete, "the on_headers_complete callback failed") \
+  XX(CB_body, "the on_body callback failed")                         \
+  XX(CB_message_complete, "the on_message_complete callback failed") \
+  XX(CB_status, "the on_status callback failed")                     \
+  XX(CB_chunk_header, "the on_chunk_header callback failed")         \
+  XX(CB_chunk_complete, "the on_chunk_complete callback failed")     \
+                                                                     \
+  /* Parsing-related errors */                                       \
+  XX(INVALID_EOF_STATE, "stream ended at an unexpected time")        \
+  XX(HEADER_OVERFLOW,                                                \
+     "too many header bytes seen; overflow detected")                \
+  XX(CLOSED_CONNECTION,                                              \
+     "data received after completed connection: close message")      \
+  XX(INVALID_VERSION, "invalid HTTP version")                        \
+  XX(INVALID_STATUS, "invalid HTTP status code")                     \
+  XX(INVALID_METHOD, "invalid HTTP method")                          \
+  XX(INVALID_URL, "invalid URL")                                     \
+  XX(INVALID_HOST, "invalid host")                                   \
+  XX(INVALID_PORT, "invalid port")                                   \
+  XX(INVALID_PATH, "invalid path")                                   \
+  XX(INVALID_QUERY_STRING, "invalid query string")                   \
+  XX(INVALID_FRAGMENT, "invalid fragment")                           \
+  XX(LF_EXPECTED, "LF character expected")                           \
+  XX(INVALID_HEADER_TOKEN, "invalid character in header")            \
+  XX(INVALID_CONTENT_LENGTH,                                         \
+     "invalid character in content-length header")                   \
+  XX(UNEXPECTED_CONTENT_LENGTH,                                      \
+     "unexpected content-length header")                             \
+  XX(INVALID_CHUNK_SIZE,                                             \
+     "invalid character in chunk size header")                       \
+  XX(INVALID_CONSTANT, "invalid constant string")                    \
+  XX(INVALID_INTERNAL_STATE, "encountered unexpected internal state")\
+  XX(STRICT, "strict mode assertion failed")                         \
+  XX(PAUSED, "parser is paused")                                     \
+  XX(UNKNOWN, "an unknown error occurred")
+
+
+     /* Define HPE_* values for each errno value above */
+#define HTTP_ERRNO_GEN(n, s) HPE_##n,
+    enum http_errno {
+        HTTP_ERRNO_MAP(HTTP_ERRNO_GEN)
+    };
+#undef HTTP_ERRNO_GEN
+
+
+    /* Get an http_errno value from an http_parser */
+#define HTTP_PARSER_ERRNO(p)            ((enum http_errno) (p)->http_errno)
+
+
+    struct http_parser {
+        /** PRIVATE **/
+        unsigned int type : 2;         /* enum http_parser_type */
+        unsigned int flags : 8;        /* F_* values from 'flags' enum; semi-public */
+        unsigned int state : 7;        /* enum state from http_parser.c */
+        unsigned int header_state : 7; /* enum header_state from http_parser.c */
+        unsigned int index : 7;        /* index into current matcher */
+        unsigned int lenient_http_headers : 1;
+
+        uint32_t nread;          /* # bytes read in various scenarios */
+        uint64_t content_length; /* # bytes in body (0 if no Content-Length header) */
+
+        /** READ-ONLY **/
+        unsigned short http_major;
+        unsigned short http_minor;
+        unsigned int status_code : 16; /* responses only */
+        unsigned int method : 8;       /* requests only */
+        unsigned int http_errno : 7;
+
+        /* 1 = Upgrade header was present and the parser has exited because of that.
+         * 0 = No upgrade header present.
+         * Should be checked when http_parser_execute() returns in addition to
+         * error checking.
+         */
+        unsigned int upgrade : 1;
+
+        /** PUBLIC **/
+        void* data; /* A pointer to get hook to the "connection" or "socket" object */
+    };
+
+
+    struct http_parser_settings {
+        http_cb      on_message_begin;
+        http_data_cb on_url;
+        http_data_cb on_status;
+        http_data_cb on_header_field;
+        http_data_cb on_header_value;
+        http_cb      on_headers_complete;
+        http_data_cb on_body;
+        http_cb      on_message_complete;
+        /* When on_chunk_header is called, the current chunk length is stored
+         * in parser->content_length.
+         */
+        http_cb      on_chunk_header;
+        http_cb      on_chunk_complete;
+    };
+
+
+    enum http_parser_url_fields
+    {
+        UF_SCHEMA = 0
+        , UF_HOST = 1
+        , UF_PORT = 2
+        , UF_PATH = 3
+        , UF_QUERY = 4
+        , UF_FRAGMENT = 5
+        , UF_USERINFO = 6
+        , UF_MAX = 7
+    };
+
+
+    /* Result structure for http_parser_parse_url().
+     *
+     * Callers should index into field_data[] with UF_* values iff field_set
+     * has the relevant (1 << UF_*) bit set. As a courtesy to clients (and
+     * because we probably have padding left over), we convert any port to
+     * a uint16_t.
+     */
+    struct http_parser_url {
+        uint16_t field_set;           /* Bitmask of (1 << UF_*) values */
+        uint16_t port;                /* Converted UF_PORT string */
+
+        struct {
+            uint16_t off;               /* Offset into buffer in which field starts */
+            uint16_t len;               /* Length of run in buffer */
+        } field_data[UF_MAX];
+    };
+
+
+    /* Returns the library version. Bits 16-23 contain the major version number,
+     * bits 8-15 the minor version number and bits 0-7 the patch level.
+     * Usage example:
+     *
+     *   unsigned long version = http_parser_version();
+     *   unsigned major = (version >> 16) & 255;
+     *   unsigned minor = (version >> 8) & 255;
+     *   unsigned patch = version & 255;
+     *   printf("http_parser v%u.%u.%u\n", major, minor, patch);
+     */
+    unsigned long http_parser_version(void);
+
+    void http_parser_init(http_parser* parser, enum http_parser_type type);
+
+
+    /* Initialize http_parser_settings members to 0
+     */
+    void http_parser_settings_init(http_parser_settings* settings);
+
+
+    /* Executes the parser. Returns number of parsed bytes. Sets
+     * `parser->http_errno` on error. */
+    size_t http_parser_execute(http_parser* parser,
+        const http_parser_settings* settings,
+        const char* data,
+        size_t len);
+
+
+    /* If http_should_keep_alive() in the on_headers_complete or
+     * on_message_complete callback returns 0, then this should be
+     * the last message on the connection.
+     * If you are the server, respond with the "Connection: close" header.
+     * If you are the client, close the connection.
+     */
+    int http_should_keep_alive(const http_parser* parser);
+
+    /* Returns a string version of the HTTP method. */
+    const char* http_method_str(enum http_method m);
+
+    /* Return a string name of the given error */
+    const char* http_errno_name(enum http_errno err);
+
+    /* Return a string description of the given error */
+    const char* http_errno_description(enum http_errno err);
+
+    /* Initialize all http_parser_url members to 0 */
+    void http_parser_url_init(struct http_parser_url* u);
+
+    /* Parse a URL; return nonzero on failure */
+    int http_parser_parse_url(const char* buf, size_t buflen,
+        int is_connect,
+        struct http_parser_url* u);
+
+    /* Pause or un-pause the parser; a nonzero value pauses */
+    void http_parser_pause(http_parser* parser, int paused);
+
+    /* Checks if this is the final chunk of the body. */
+    int http_body_is_final(const http_parser* parser);
+
+#ifdef __cplusplus
+}
+#endif
+#endif
