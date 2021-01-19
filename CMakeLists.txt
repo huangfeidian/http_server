@@ -26,7 +26,7 @@ add_library(${CMAKE_PROJECT_NAME} ${BASE_SRC} ${BASE_INC})
 
 find_package(Threads)
 
-target_link_libraries(${CMAKE_PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT} spdlog::spdlog)
+target_link_libraries(${CMAKE_PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT})
 
 add_executable(echo_server  ${PROJECT_SOURCE_DIR}/test/echo_test.cpp)
 target_link_libraries(echo_server ${CMAKE_PROJECT_NAME})
@@ -43,7 +43,6 @@ foreach(p LIB INCLUDE)
 endforeach()
 
 export(TARGETS ${CMAKE_PROJECT_NAME}
-    NAMESPACE spiritsaway::
      FILE ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}Targets.cmake)
 
 file(WRITE
@@ -63,6 +62,5 @@ install(TARGETS ${PROJECT_NAME}
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION include/${PROJECT_NAME})
 
 install(EXPORT ${CMAKE_PROJECT_NAME}Targets
-    NAMESPACE spiritsaway::
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${CMAKE_PROJECT_NAME})
 
