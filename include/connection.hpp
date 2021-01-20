@@ -53,7 +53,7 @@ private:
   std::array<char, 8192> buffer_;
 
   /// The incoming request.
-  request request_;
+  std::shared_ptr<request> request_;
 
   /// The parser for the incoming request.
   request_parser request_parser_;

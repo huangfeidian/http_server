@@ -108,14 +108,16 @@ namespace spiritsaway::http_server {
 	void connection::handle_request()
 	{
 		auto self = shared_from_this();
-		request_parser_.move_req(request_);
+		request_ = std::make_shared<request>();
+		request_parser_.move_req(*request_);
 		if (con_timer_.expires_from_now(std::chrono::seconds(timeout_seconds_)) != 0)
 		{
 			connection_manager_.stop(self);
 			return;
 		}
 		auto weak_self = std::weak_ptr<connection>(self);
-		request_handler_(request_, [weak_self](const reply& in_reply) {
+		auto weak_request = std::weak_ptr<request>(request_);
+		request_handler_(weak_request, [weak_self](const reply& in_reply) {
 			auto strong_self = weak_self.lock();
 			if (strong_self)
 			{

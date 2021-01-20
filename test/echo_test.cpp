@@ -19,8 +19,14 @@ int main()
 		//}
 
 		// Initialise the server.
-		request_handler echo_handler_ins = [](const request& req, reply_handler cb)
+		request_handler echo_handler_ins = [](std::weak_ptr< request> weak_req, reply_handler cb)
 		{
+			auto req_ptr = weak_req.lock();
+			if(!req_ptr)
+			{
+				return;
+			}
+			auto& req = *req_ptr;
 			reply rep;
 			// Fill out the reply to be sent to the client.
 			rep.status = reply::status_type::ok;
