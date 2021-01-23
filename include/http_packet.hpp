@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <memory>
 namespace spiritsaway::http_server
 {
     struct header
