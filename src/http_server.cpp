@@ -68,4 +68,8 @@ namespace spiritsaway::http_server
 		connection_manager_.stop_all();
 	}
 
+	std::size_t server::get_connection_count()
+	{
+		return connection_manager_.get_connection_count();
+	}
 } // namespace spiritsaway::http_server

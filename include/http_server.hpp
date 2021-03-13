@@ -25,6 +25,8 @@ namespace spiritsaway::http_server
 
 		void stop();
 
+		std::size_t get_connection_count();
+
 	private:
 		/// Perform an asynchronous accept operation.
 		void do_accept();
