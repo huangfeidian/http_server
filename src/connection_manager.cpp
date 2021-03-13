@@ -41,5 +41,10 @@ namespace spiritsaway::http_server
             c->stop();
         }
     }
+    std::size_t connection_manager::get_connection_count()
+    {
+        std::lock_guard<std::mutex> guard(con_mutex_);
+        return connections_.size();
+    }
 
 } // namespace spiritsaway::http_server

@@ -25,6 +25,8 @@ namespace spiritsaway::http_server
 
 		/// Stop all connections.
 		void stop_all();
+		
+		std::size_t get_connection_count();
 
 	private:
 		/// The managed connections.
