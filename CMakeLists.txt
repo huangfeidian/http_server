@@ -14,7 +14,7 @@ set(CMAKE_CXX_STANDARD 17)
 if(MSVC)
 add_definitions(-DASIO_MSVC)
 add_definitions(-DBOOST_ASIO_HAS_MOVE)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++latest")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++latest /bigobj")
 endif(MSVC)
 
 include_directories(${PROJECT_SOURCE_DIR}/include)

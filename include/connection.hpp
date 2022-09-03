@@ -63,6 +63,8 @@ private:
   /// The reply to be sent back to the client.
   reply reply_;
 
+  std::string m_reply_str;
+
   // timeout timer
   asio::basic_waitable_timer<std::chrono::steady_clock> con_timer_;
   const std::size_t timeout_seconds_ = 5;

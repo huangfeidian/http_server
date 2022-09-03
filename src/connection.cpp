@@ -75,8 +75,8 @@ namespace spiritsaway::http_server {
 			connection_manager_.stop(self);
 			return;
 		}
-
-		asio::async_write(socket_, asio::buffer(reply_.to_string()),
+		m_reply_str = reply_.to_string();
+		asio::async_write(socket_, asio::buffer(m_reply_str),
 			[this, self](std::error_code ec, std::size_t)
 			{
 				if (!ec)
