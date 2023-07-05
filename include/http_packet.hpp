@@ -43,7 +43,8 @@ namespace spiritsaway::http_server
             not_implemented = 501,
             bad_gateway = 502,
             service_unavailable = 503
-        } status;
+        };
+        std::string status;
 
         /// The headers to be included in the reply.
         std::vector<header> headers;

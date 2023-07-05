@@ -29,7 +29,9 @@ find_package(Threads)
 target_link_libraries(${CMAKE_PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT})
 
 add_executable(echo_server  ${PROJECT_SOURCE_DIR}/test/echo_test.cpp)
+add_executable(client_test  ${PROJECT_SOURCE_DIR}/test/client_test.cpp)
 target_link_libraries(echo_server ${CMAKE_PROJECT_NAME})
+target_link_libraries(client_test ${CMAKE_PROJECT_NAME})
 
 
 

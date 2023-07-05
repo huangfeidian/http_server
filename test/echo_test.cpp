@@ -29,13 +29,10 @@ int main()
 			auto& req = *req_ptr;
 			reply rep;
 			// Fill out the reply to be sent to the client.
-			rep.status = reply::status_type::ok;
+			
 			rep.content = "echo request uri: " + req.uri + " body: " + req.body;
-			rep.headers.resize(2);
-			rep.headers[0].name = "Content-Length";
-			rep.headers[0].value = std::to_string(rep.content.size());
-			rep.headers[1].name = "Content-Type";
-			rep.headers[1].value = "text";
+			rep.stock_reply(reply::status_type::ok);
+			
 			cb(rep);
 		};
 		std::string address = "127.0.0.1";

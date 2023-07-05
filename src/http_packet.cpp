@@ -92,7 +92,7 @@ namespace spiritsaway::http_server
 	std::string reply::to_string()
 	{
 		std::vector<std::string> buffers;
-		buffers.push_back(status_strings::to_string(status));
+		buffers.push_back(status);
 		for (std::size_t i = 0; i < headers.size(); ++i)
 		{
 			header &h = headers[i];
@@ -243,7 +243,7 @@ namespace spiritsaway::http_server
 	reply reply::stock_reply(reply::status_type status)
 	{
 		reply rep;
-		rep.status = status;
+		rep.status = int(status);
 		rep.content = stock_replies::to_string(status);
 		rep.headers.resize(2);
 		rep.headers[0].name = "Content-Length";
